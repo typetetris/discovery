@@ -1,6 +1,7 @@
 #![no_main]
 #![no_std]
 
+use core::fmt::Write;
 use cortex_m_rt::entry;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
@@ -52,6 +53,6 @@ fn main() -> ! {
 
     loop {
         let byte = nb::block!(serial.read()).unwrap();
-        rprintln!("{}", byte as char);
+        nb::block!(serial.write(byte)).unwrap();
     }
 }
