@@ -60,16 +60,17 @@ fn echo_one_word<T: microbit::hal::uarte::Instance>(
         let byte = nb::block!(serial.read())?;
         rprintln!("Received {}", byte);
         rprintln!("Buffer length so far: {}", buffer.len());
-        if byte == b'\r' || buffer.len() == 32 {
-            rprintln!("Newline received or buffer full, sending!");
+        if byte == b'\r' {
+            rprintln!("Enter received, sending!");
             buffer.reverse();
             serial.bwrite_all(buffer.as_slice())?;
-            write!(serial, "\r\n")?;
+            writeln!(serial, "\r")?;
             nb::block!(serial.flush())?;
             return Ok(());
-        } else {
-            rprintln!("Storing!");
-            buffer.push(byte)?;
+        } else if let Err(_) = buffer.push(byte) {
+            writeln!(serial, "ERROR: Entered string too long, resetting!\r")?;
+            nb::block!(serial.flush())?;
+            return Ok(());
         }
     }
 }
