@@ -1,9 +1,10 @@
 #![no_main]
 #![no_std]
 
+use core::fmt::Write;
 use cortex_m_rt::entry;
-use rtt_target::rtt_init_print;
 use panic_rtt_target as _;
+use rtt_target::rtt_init_print;
 
 #[cfg(feature = "v1")]
 use microbit::{
@@ -50,7 +51,9 @@ fn main() -> ! {
         UartePort::new(serial)
     };
 
-    nb::block!(serial.write(b'X')).unwrap();
+    serial
+        .write_str("The quick brown fox jumps over the lazy dog.")
+        .unwrap();
     nb::block!(serial.flush()).unwrap();
 
     loop {}
