@@ -3,6 +3,7 @@
 
 use core::fmt::Write;
 use cortex_m_rt::entry;
+use heapless::Vec;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 
@@ -24,6 +25,54 @@ use microbit::{
 mod serial_setup;
 #[cfg(feature = "v2")]
 use serial_setup::UartePort;
+
+#[derive(Debug)]
+enum Error {
+    UarteError(microbit::hal::uarte::Error),
+    WriteError(core::fmt::Error),
+    PushError(u8),
+}
+
+impl From<u8> for Error {
+    fn from(value: u8) -> Error {
+        return Error::PushError(value);
+    }
+}
+
+impl From<core::fmt::Error> for Error {
+    fn from(value: core::fmt::Error) -> Error {
+        return Error::WriteError(value);
+    }
+}
+
+impl From<microbit::hal::uarte::Error> for Error {
+    fn from(value: microbit::hal::uarte::Error) -> Error {
+        return Error::UarteError(value);
+    }
+}
+
+fn echo_one_word<T: microbit::hal::uarte::Instance>(
+    serial: &mut UartePort<T>,
+    buffer: &mut Vec<u8, 32>,
+) -> Result<(), Error> {
+    buffer.clear();
+    loop {
+        let byte = nb::block!(serial.read())?;
+        rprintln!("Received {}", byte);
+        rprintln!("Buffer length so far: {}", buffer.len());
+        if byte == b'\r' || buffer.len() == 32 {
+            rprintln!("Newline received or buffer full, sending!");
+            buffer.reverse();
+            serial.bwrite_all(buffer.as_slice())?;
+            write!(serial, "\r\n")?;
+            nb::block!(serial.flush())?;
+            return Ok(());
+        } else {
+            rprintln!("Storing!");
+            buffer.push(byte)?;
+        }
+    }
+}
 
 #[entry]
 fn main() -> ! {
@@ -51,8 +100,9 @@ fn main() -> ! {
         UartePort::new(serial)
     };
 
+    let mut buffer: Vec<u8, 32> = Vec::new();
+
     loop {
-        let byte = nb::block!(serial.read()).unwrap();
-        nb::block!(serial.write(byte)).unwrap();
+        echo_one_word(&mut serial, &mut buffer).unwrap()
     }
 }
