@@ -1,0 +1,19 @@
+[[language]]
+language-servers = ["scls", "openscad-lsp"]
+name = "openscad"
+
+[language-server]
+[language-server.rust-analyzer.config]
+checkOnSave = true
+[language-server.rust-analyzer.config.cargo]
+features = ["v2"]
+target = "thumbv7em-none-eabihf"
+
+[language-server.rust-analyzer.config.check]
+command = "clippy"
+
+[language-server.scls]
+command = "/nix/store/i5in791bx8v05jflln9mmm7rgsmpb0m0-simple-completion-language-server-0.1.0/bin/simple-completion-language-server"
+
+[language-server.scls.config]
+max_completion_items = 20
